@@ -21,6 +21,11 @@ public interface TokenRepository extends JpaRepository<Token, Integer> {
 
   @EntityGraph(attributePaths = "user")
   @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("select t from Token t join t.user u where u.email = :email and t.tokenType = :type")
+  Optional<Token> findLockedByUserEmailAndType(@Param("email") String email, @Param("type") TokenType type);
+
+  @EntityGraph(attributePaths = "user")
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("select token from Token token where token.id = :id")
   Optional<Token> findLockedById(@Param("id") Integer id);
 
