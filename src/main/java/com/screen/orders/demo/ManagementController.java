@@ -7,9 +7,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/management")
+@RequestMapping("/management")
 @Tag(name = "Management")
-@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+@PreAuthorize("hasAnyRole('ADMIN', 'MANAGEMENT')")
 public class ManagementController {
 
 

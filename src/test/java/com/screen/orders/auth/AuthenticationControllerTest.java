@@ -58,7 +58,7 @@ class AuthenticationControllerTest {
     assertEquals("at-2", response.getBody().getAccessToken());
     String cookieHeader = response.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
     assertNotNull(cookieHeader);
-    assertTrue(cookieHeader.contains("Path=/api/auth"));
+    assertTrue(cookieHeader.contains("Path=/api/v1/auth"));
     assertTrue(cookieHeader.contains("SameSite=Lax"));
   }
 

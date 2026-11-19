@@ -101,6 +101,7 @@ class AuthenticationServiceTest {
 
     assertNotNull(issued.accessToken());
     assertNotNull(issued.refreshToken());
+    assertEquals("ROLE_USER", jwtService.extractRole(issued.accessToken()));
     String familyId = jwtService.extractSessionId(issued.refreshToken());
     assertNotNull(familyId);
   }

@@ -14,7 +14,7 @@ import java.util.Optional;
 public class RefreshTokenCookie {
 
   public static final String NAME = "refreshToken";
-  public static final String PATH = "/api/auth";
+  public static final String PATH = "/api/v1/auth";
 
   private final long refreshTokenExpirationMs;
   private final boolean secure;

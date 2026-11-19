@@ -5,6 +5,7 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +22,7 @@ public class JwtService {
 
   public static final String CLAIM_TOKEN_TYPE = "token_type";
   public static final String CLAIM_SESSION_ID = "sid";
+  public static final String CLAIM_ROLE = "role";
   public static final String TYPE_ACCESS = "access";
   public static final String TYPE_REFRESH = "refresh";
 
@@ -39,6 +41,10 @@ public class JwtService {
     return extractClaim(token, claims -> claims.get(CLAIM_SESSION_ID, String.class));
   }
 
+  public String extractRole(String token) {
+    return extractClaim(token, claims -> claims.get(CLAIM_ROLE, String.class));
+  }
+
   public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
     final Claims claims = extractAllClaims(token);
     return claimsResolver.apply(claims);
@@ -52,7 +58,13 @@ public class JwtService {
       Map<String, Object> extraClaims,
       UserDetails userDetails
   ) {
-    return buildToken(extraClaims, userDetails, jwtExpiration, TYPE_ACCESS);
+    Map<String, Object> claims = new HashMap<>(extraClaims);
+    userDetails.getAuthorities().stream()
+        .map(GrantedAuthority::getAuthority)
+        .filter(auth -> auth != null && auth.startsWith("ROLE_"))
+        .findFirst()
+        .ifPresent(roleAuth -> claims.put(CLAIM_ROLE, roleAuth));
+    return buildToken(claims, userDetails, jwtExpiration, TYPE_ACCESS);
   }
 
   public String generateRefreshToken(UserDetails userDetails) {

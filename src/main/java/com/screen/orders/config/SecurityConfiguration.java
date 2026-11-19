@@ -22,7 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static com.screen.orders.user.Role.ADMIN;
-import static com.screen.orders.user.Role.MANAGER;
+import static com.screen.orders.user.Role.MANAGEMENT;
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
 @Configuration
@@ -31,10 +31,11 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 @EnableMethodSecurity
 public class SecurityConfiguration {
 
-    private static final String[] WHITE_LIST_URL = {"/api/auth/register",
-            "/api/auth/login",
-            "/api/auth/refresh",
-            "/api/auth/logout",
+    private static final String[] WHITE_LIST_URL = {
+            "/auth/register",
+            "/auth/login",
+            "/auth/refresh",
+            "/auth/logout",
             "/error",
             "/v2/api-docs",
             "/v3/api-docs",
@@ -45,7 +46,8 @@ public class SecurityConfiguration {
             "/configuration/security",
             "/swagger-ui/**",
             "/webjars/**",
-            "/swagger-ui.html"};
+            "/swagger-ui.html"
+    };
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
 
@@ -75,7 +77,8 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(req ->
                         req.requestMatchers(WHITE_LIST_URL)
                                 .permitAll()
-                                .requestMatchers("/api/v1/management/**").hasAnyRole(ADMIN.name(), MANAGER.name())
+                                .requestMatchers("/admin/**").hasRole(ADMIN.name())
+                                .requestMatchers("/management/**").hasAnyRole(ADMIN.name(), MANAGEMENT.name())
                                 .anyRequest()
                                 .authenticated()
                 )
