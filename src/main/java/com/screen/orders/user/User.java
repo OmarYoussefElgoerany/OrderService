@@ -1,28 +1,32 @@
 package com.screen.orders.user;
 
-import com.screen.orders.token.Token;
-import jakarta.persistence.*;
+import com.screen.orders.common.audit.AuthenticatedPrincipal;
+import com.screen.orders.common.jpa.BaseEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
 
-@Data
-@Builder
+@Getter
+@Setter
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Table(name = "_user")
-public class User implements UserDetails {
+public class User extends BaseEntity implements UserDetails, AuthenticatedPrincipal {
 
-  @Id
-  @GeneratedValue
-  private Integer id;
   private String firstname;
   private String lastname;
   @Column(nullable = false, unique = true)
@@ -32,9 +36,6 @@ public class User implements UserDetails {
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private Role role;
-
-  @OneToMany(mappedBy = "user")
-  private List<Token> tokens;
 
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {

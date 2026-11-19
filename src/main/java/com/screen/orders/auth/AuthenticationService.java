@@ -1,10 +1,10 @@
 package com.screen.orders.auth;
 
-import com.screen.orders.config.JwtService;
-import com.screen.orders.token.Token;
-import com.screen.orders.token.TokenHash;
-import com.screen.orders.token.TokenRepository;
-import com.screen.orders.token.TokenType;
+import com.screen.orders.auth.dto.AuthenticationRequest;
+import com.screen.orders.auth.dto.IssuedTokens;
+import com.screen.orders.auth.dto.RegisterRequest;
+import com.screen.orders.common.security.JwtService;
+import com.screen.orders.common.security.SessionRevocationHandler;
 import com.screen.orders.user.User;
 import com.screen.orders.user.UserRepository;
 import io.jsonwebtoken.Claims;
@@ -25,7 +25,8 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class AuthenticationService {
+public class AuthenticationService implements SessionRevocationHandler {
+
   private final UserRepository repository;
   private final TokenRepository tokenRepository;
   private final PasswordEncoder passwordEncoder;
@@ -119,6 +120,21 @@ public class AuthenticationService {
     storedSession.setRotatedAt(null);
     tokenRepository.saveAndFlush(storedSession);
     throw unauthorized("Refresh token reuse detected; the session has been revoked");
+  }
+
+  @Override
+  @Transactional
+  public void revokeUserSession(Integer userId) {
+    if (userId == null) {
+      return;
+    }
+    tokenRepository.findByUser_IdAndTokenType(userId, TokenType.REFRESH).ifPresent(session -> {
+      session.setExpired(true);
+      session.setRevoked(true);
+      session.setPreviousTokenHash(null);
+      session.setRotatedAt(null);
+      tokenRepository.save(session);
+    });
   }
 
   private boolean isWithinConcurrencyGraceWindow(Token session, String presentedHash, Instant now) {
