@@ -10,13 +10,10 @@ import java.util.List;
 public class OrderService {
 
     private final OrderRepository repository;
+    private final OrderMapper orderMapper;
 
     public void save(OrderRequest request) {
-        var book = Order.builder()
-                .id(request.getId())
-                .name(request.getName())
-                .build();
-        repository.save(book);
+        repository.save(orderMapper.toEntity(request));
     }
 
     public List<Order> findAll() {
