@@ -43,12 +43,14 @@ Base package: `src/main/java/com/screen/orders`
 | Package / File | Responsibility |
 | :--- | :--- |
 | `OrdersApplication.java` | Main `@SpringBootApplication` entry point and JPA Auditing bootstrap. |
-| `config/` | Security filter chain (`SecurityConfiguration`), bearer filter (`JwtAuthenticationFilter`), JWT signing/validation (`JwtService`), logout revocation (`LogoutService`), core beans (`ApplicationConfig`), and OpenAPI specification (`OpenApiConfig`). |
-| `auth/` | Public auth endpoints (`AuthenticationController` at `@RequestMapping("/auth")` -> `/api/v1/auth/{register,login,refresh,logout}`), session rotation and reuse detection (`AuthenticationService`), and `RefreshTokenCookie` helper (`Path=/api/v1/auth`). |
-| `token/` | `Token` (active refresh session per user with `familyId`, `previousTokenHash`, `rotatedAt`, and pessimistic locking), `TokenHash` (SHA-256 utility), and `TokenRepository`. |
-| `user/` | `User` entity (`_user` table, implements `UserDetails`), 3-value `Role` (`USER`, `MANAGEMENT`, `ADMIN`) & `Permission` enums, initial admin seeder (`AdminBootstrapSeeder`), admin user role management (`AdminUserController` at `@RequestMapping("/admin/users")` -> `/api/v1/admin/users`), and password update flow (`UserController` at `@RequestMapping("/users")` -> `PATCH /api/v1/users`, `UserService`). |
-| `order/` | Audited `Order` entity, `OrderRequest` DTO, `OrderService`, and `OrderController` (`@RequestMapping("/orders")` -> `GET`/`POST /api/v1/orders`). |
-| `auditing/` | `ApplicationAuditAware` bridging Spring Security's `SecurityContext` to Spring Data JPA auditing. |
+| `common/audit/` | `AuthenticatedPrincipal` interface and `ApplicationAuditAware` bridging `SecurityContext` to Spring Data JPA auditing. |
+| `common/jpa/` | `@MappedSuperclass` base entity hierarchy (`BaseEntity` with `id` and Hibernate-safe `equals`/`hashCode`, and `BaseAuditedEntity` with JPA auditing fields). |
+| `common/config/` | Core Spring beans (`ApplicationConfig`) and OpenAPI specification (`OpenApiConfig`). |
+| `common/exception/` | Global `@RestControllerAdvice` (`GlobalExceptionHandler`) mapping exceptions to RFC 9457 `ProblemDetail`. |
+| `common/security/` | Security filter chain (`SecurityConfiguration`), bearer filter (`JwtAuthenticationFilter`), JWT signing/validation (`JwtService`), and `SessionRevocationHandler` port. |
+| `auth/` | Public auth endpoints (`AuthenticationController` at `@RequestMapping("/auth")` -> `/api/v1/auth/{register,login,refresh,logout}`), `AuthenticationService` (session rotation, reuse detection, `SessionRevocationHandler`), `LogoutService`, `RefreshTokenCookie` (`Path=/api/v1/auth`), package-private `TokenRepository`/`TokenHash`/`AuthMapper`, `Token` entity, and `auth/dto/` (`RegisterRequest`, `AuthenticationRequest`, `AuthenticationResponse`, `IssuedTokens`). |
+| `user/` | `User` entity (`_user` table, implements `UserDetails` & `AuthenticatedPrincipal`), 3-value `Role` (`USER`, `MANAGEMENT`, `ADMIN`) & `Permission` enums, initial admin seeder (`AdminBootstrapSeeder`), admin user role management (`AdminUserController` at `@RequestMapping("/admin/users")` -> `/api/v1/admin/users`), password update flow (`UserController` at `@RequestMapping("/users")`, `UserService`), package-private `UserMapper`, and `user/dto/` (`ChangePasswordRequest`, `UpdateUserRoleRequest`, `UserSummaryResponse`). |
+| `order/` | Audited `Order` entity, package-private `OrderRepository` & `OrderMapper`, `OrderService`, `OrderController` (`@RequestMapping("/orders")` -> `GET`/`POST /api/v1/orders`), and `order/dto/` (`OrderRequest`, `OrderResponse`). |
 | `demo/` | Role/authority demonstration controllers (`AdminController` at `/admin`, `ManagementController` at `/management`, `DemoController` at `/demo-controller`). |
 
 Configuration: `src/main/resources/application.properties`  

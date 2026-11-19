@@ -1,13 +1,12 @@
-package com.screen.orders.token;
+package com.screen.orders.auth;
 
+import com.screen.orders.common.jpa.BaseEntity;
 import com.screen.orders.user.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -17,12 +16,13 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
 
 @Getter
 @Setter
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
@@ -33,11 +33,7 @@ import java.time.Instant;
         columnNames = {"user_id", "token_type"}
     )
 )
-public class Token {
-
-  @Id
-  @GeneratedValue
-  private Integer id;
+public class Token extends BaseEntity {
 
   @Column(name = "token", unique = true, nullable = false, length = 64)
   private String tokenHash;

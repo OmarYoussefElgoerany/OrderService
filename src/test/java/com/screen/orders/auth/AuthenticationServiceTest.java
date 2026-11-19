@@ -1,10 +1,8 @@
 package com.screen.orders.auth;
 
-import com.screen.orders.config.JwtService;
-import com.screen.orders.token.Token;
-import com.screen.orders.token.TokenHash;
-import com.screen.orders.token.TokenRepository;
-import com.screen.orders.token.TokenType;
+import com.screen.orders.auth.dto.IssuedTokens;
+import com.screen.orders.auth.dto.RegisterRequest;
+import com.screen.orders.common.security.JwtService;
 import com.screen.orders.user.Role;
 import com.screen.orders.user.User;
 import com.screen.orders.user.UserRepository;

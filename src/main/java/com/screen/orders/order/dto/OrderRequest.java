@@ -1,4 +1,4 @@
-package com.screen.orders.order;
+package com.screen.orders.order.dto;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -9,6 +9,6 @@ import lombok.Setter;
 @Builder
 public class OrderRequest {
 
-    private Integer id;
-    private String name;
+  private Integer id;
+  private String name;
 }

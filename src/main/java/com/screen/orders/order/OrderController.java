@@ -1,8 +1,14 @@
 package com.screen.orders.order;
 
+import com.screen.orders.order.dto.OrderRequest;
+import com.screen.orders.order.dto.OrderResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -11,18 +17,18 @@ import java.util.List;
 @RequiredArgsConstructor
 public class OrderController {
 
-    private final OrderService service;
+  private final OrderService service;
 
-    @PostMapping
-    public ResponseEntity<?> save(
-            @RequestBody OrderRequest request
-    ) {
-        service.save(request);
-        return ResponseEntity.accepted().build();
-    }
+  @PostMapping
+  public ResponseEntity<Void> save(
+      @RequestBody OrderRequest request
+  ) {
+    service.save(request);
+    return ResponseEntity.accepted().build();
+  }
 
-    @GetMapping
-    public ResponseEntity<List<Order>> findAllOrders() {
-        return ResponseEntity.ok(service.findAll());
-    }
+  @GetMapping
+  public ResponseEntity<List<OrderResponse>> findAllOrders() {
+    return ResponseEntity.ok(service.findAll());
+  }
 }

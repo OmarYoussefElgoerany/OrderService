@@ -1,10 +1,6 @@
-package com.screen.orders.config;
+package com.screen.orders.auth;
 
-import com.screen.orders.auth.RefreshTokenCookie;
-import com.screen.orders.token.Token;
-import com.screen.orders.token.TokenHash;
-import com.screen.orders.token.TokenRepository;
-import com.screen.orders.token.TokenType;
+import com.screen.orders.common.security.JwtService;
 import com.screen.orders.user.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;

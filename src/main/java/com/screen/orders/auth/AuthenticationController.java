@@ -1,6 +1,9 @@
 package com.screen.orders.auth;
 
-import com.screen.orders.config.LogoutService;
+import com.screen.orders.auth.dto.AuthenticationRequest;
+import com.screen.orders.auth.dto.AuthenticationResponse;
+import com.screen.orders.auth.dto.IssuedTokens;
+import com.screen.orders.auth.dto.RegisterRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.servlet.http.HttpServletRequest;
@@ -129,5 +132,4 @@ public class AuthenticationController {
         .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
         .body(response);
   }
-
 }

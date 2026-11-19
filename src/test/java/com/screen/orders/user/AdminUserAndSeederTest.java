@@ -1,10 +1,9 @@
 package com.screen.orders.user;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.screen.orders.auth.RegisterRequest;
-import com.screen.orders.token.Token;
-import com.screen.orders.token.TokenRepository;
-import com.screen.orders.token.TokenType;
+import com.screen.orders.auth.dto.RegisterRequest;
+import com.screen.orders.common.security.SessionRevocationHandler;
+import com.screen.orders.user.dto.UpdateUserRoleRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,7 +20,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,7 +38,7 @@ class AdminUserAndSeederTest {
   @Mock
   private UserRepository userRepository;
   @Mock
-  private TokenRepository tokenRepository;
+  private SessionRevocationHandler sessionRevocationHandler;
 
   private PasswordEncoder passwordEncoder;
   private UserService userService;
@@ -50,7 +48,7 @@ class AdminUserAndSeederTest {
   @BeforeEach
   void setUp() {
     passwordEncoder = new BCryptPasswordEncoder();
-    userService = new UserService(passwordEncoder, userRepository, tokenRepository, Mappers.getMapper(UserMapper.class));
+    userService = new UserService(passwordEncoder, userRepository, sessionRevocationHandler, Mappers.getMapper(UserMapper.class));
     adminUserController = new AdminUserController(userService);
     seeder = new AdminBootstrapSeeder(userRepository, passwordEncoder);
   }
@@ -106,32 +104,16 @@ class AdminUserAndSeederTest {
   void adminCanPromoteUserToManagementAndRevokesRefreshTokenSession() {
     User admin = User.builder().id(1).email("admin@orders.local").role(Role.ADMIN).build();
     User target = User.builder().id(2).firstname("Bob").lastname("Smith").email("bob@orders.local").role(Role.USER).build();
-    Token targetSession = Token.builder()
-        .id(99)
-        .user(target)
-        .tokenType(TokenType.REFRESH)
-        .tokenHash("hash-1")
-        .familyId("fam-1")
-        .previousTokenHash("prev-1")
-        .rotatedAt(Instant.now())
-        .expired(false)
-        .revoked(false)
-        .build();
 
     when(userRepository.findById(2)).thenReturn(Optional.of(target));
     when(userRepository.save(target)).thenReturn(target);
-    when(tokenRepository.findByUser_IdAndTokenType(2, TokenType.REFRESH)).thenReturn(Optional.of(targetSession));
 
     Principal principal = new UsernamePasswordAuthenticationToken(admin, null, admin.getAuthorities());
     var response = adminUserController.updateUserRole(2, new UpdateUserRoleRequest(Role.MANAGEMENT), principal);
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertEquals(Role.MANAGEMENT, response.getBody().role());
-    assertTrue(targetSession.isRevoked());
-    assertTrue(targetSession.isExpired());
-    assertNull(targetSession.getPreviousTokenHash());
-    assertNull(targetSession.getRotatedAt());
-    verify(tokenRepository).save(targetSession);
+    verify(sessionRevocationHandler).revokeUserSession(2);
   }
 
   @Test

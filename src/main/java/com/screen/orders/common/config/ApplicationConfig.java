@@ -1,7 +1,6 @@
-package com.screen.orders.config;
+package com.screen.orders.common.config;
 
-
-import com.screen.orders.auditing.ApplicationAuditAware;
+import com.screen.orders.common.audit.ApplicationAuditAware;
 import com.screen.orders.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -49,5 +48,4 @@ public class ApplicationConfig {
   public PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();
   }
-
 }

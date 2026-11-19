@@ -1,6 +1,7 @@
 package com.screen.orders.auth;
 
-import com.screen.orders.config.LogoutService;
+import com.screen.orders.auth.dto.AuthenticationResponse;
+import com.screen.orders.auth.dto.IssuedTokens;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

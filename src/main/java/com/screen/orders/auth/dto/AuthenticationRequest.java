@@ -1,4 +1,4 @@
-package com.screen.orders.auth;
+package com.screen.orders.auth.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,5 +12,5 @@ import lombok.NoArgsConstructor;
 public class AuthenticationRequest {
 
   private String email;
-  String password;
+  private String password;
 }

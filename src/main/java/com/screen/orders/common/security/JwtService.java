@@ -1,4 +1,4 @@
-package com.screen.orders.config;
+package com.screen.orders.common.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;

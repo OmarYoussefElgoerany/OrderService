@@ -1,4 +1,4 @@
-package com.screen.orders.token;
+package com.screen.orders.auth;
 
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
-public interface TokenRepository extends JpaRepository<Token, Integer> {
+interface TokenRepository extends JpaRepository<Token, Integer> {
 
   @EntityGraph(attributePaths = "user")
   @Lock(LockModeType.PESSIMISTIC_WRITE)

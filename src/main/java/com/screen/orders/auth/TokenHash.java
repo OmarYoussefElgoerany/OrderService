@@ -1,16 +1,16 @@
-package com.screen.orders.token;
+package com.screen.orders.auth;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 
-public final class TokenHash {
+final class TokenHash {
 
   private TokenHash() {
   }
 
-  public static String sha256(String token) {
+  static String sha256(String token) {
     try {
       byte[] digest = MessageDigest.getInstance("SHA-256")
           .digest(token.getBytes(StandardCharsets.UTF_8));

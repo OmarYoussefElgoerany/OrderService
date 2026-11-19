@@ -1,4 +1,4 @@
-package com.screen.orders.token;
+package com.screen.orders.auth;
 
 public enum TokenType {
   BEARER,
