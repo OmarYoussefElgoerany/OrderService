@@ -6,8 +6,8 @@
 
 - **Stateless Security & Token Rotation**:
   - Short-lived JWT **access tokens** (`token_type=access`, 15m default) are returned in the JSON response body and passed via `Authorization: Bearer <token>`.
-  - Long-lived JWT **refresh tokens** (`token_type=refresh`, 7d default) are delivered via an `HttpOnly`, `Secure`, `SameSite=None` cookie (`refreshToken`, path `/api/auth/refresh`).
-  - Only SHA-256 hashes of refresh tokens are persisted in the `token` table (`TokenHash`). Rotated refresh token hashes are recorded in `used_refresh_token` (`UsedRefreshToken`); presenting an already-used refresh token triggers reuse detection and immediately revokes the active session.
+  - Long-lived JWT **refresh tokens** (`token_type=refresh`, 7d default) are delivered via an `HttpOnly`, configurable `Secure`/`SameSite` cookie (`refreshToken`, path `/api/auth`).
+  - Only SHA-256 hashes of refresh tokens are persisted in the `token` table (`TokenHash`), scoped to one `Token` row per user with a signed session family (`sid` / `familyId`) claim and a short `previousTokenHash` + `rotatedAt` multi-tab concurrency grace window. Presenting an already-rotated refresh token from the active session family outside the grace window triggers reuse detection and immediately revokes the session.
 - **Authorization (RBAC + Authorities)**:
   - Roles (`USER`, `MANAGER`, `ADMIN`) map to granular permissions (`admin:*`, `management:*`) and `ROLE_*` authorities.
   - Enforced via both URL matchers in `SecurityConfiguration` and `@PreAuthorize` method security.
@@ -38,7 +38,7 @@ Base package: `src/main/java/com/screen/orders`
 | `OrdersApplication.java` | Main `@SpringBootApplication` entry point and JPA Auditing bootstrap. |
 | `config/` | Security filter chain (`SecurityConfiguration`), bearer filter (`JwtAuthenticationFilter`), JWT signing/validation (`JwtService`), logout revocation (`LogoutService`), core beans (`ApplicationConfig`), and OpenAPI specification (`OpenApiConfig`). |
 | `auth/` | Public auth endpoints (`AuthenticationController` at `/api/auth/{register,login,refresh}`), session rotation and reuse detection (`AuthenticationService`), and `RefreshTokenCookie` helper. |
-| `token/` | `Token` (active refresh session per user), `UsedRefreshToken` (rotated token tracking with pessimistic locking), `TokenHash` (SHA-256 utility), and JPA repositories. |
+| `token/` | `Token` (active refresh session per user with `familyId`, `previousTokenHash`, `rotatedAt`, and pessimistic locking), `TokenHash` (SHA-256 utility), and `TokenRepository`. |
 | `user/` | `User` entity (`_user` table, implements `UserDetails`), `Role` & `Permission` enums, and password update flow (`UserController` at `PATCH /api/v1/users`, `UserService`). |
 | `order/` | Audited `Order` entity, `OrderRequest` DTO, `OrderService`, and `OrderController` (`GET`/`POST /api/v1/orders`). |
 | `auditing/` | `ApplicationAuditAware` bridging Spring Security's `SecurityContext` to Spring Data JPA auditing. |

@@ -1,14 +1,15 @@
 package com.screen.orders.config;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import javax.crypto.SecretKey;
 import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,6 +18,11 @@ import java.util.function.Function;
 
 @Service
 public class JwtService {
+
+  public static final String CLAIM_TOKEN_TYPE = "token_type";
+  public static final String CLAIM_SESSION_ID = "sid";
+  public static final String TYPE_ACCESS = "access";
+  public static final String TYPE_REFRESH = "refresh";
 
   @Value("${application.security.jwt.secret-key}")
   private String secretKey;
@@ -27,6 +33,10 @@ public class JwtService {
 
   public String extractUsername(String token) {
     return extractClaim(token, Claims::getSubject);
+  }
+
+  public String extractSessionId(String token) {
+    return extractClaim(token, claims -> claims.get(CLAIM_SESSION_ID, String.class));
   }
 
   public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
@@ -42,39 +52,56 @@ public class JwtService {
       Map<String, Object> extraClaims,
       UserDetails userDetails
   ) {
-    return buildToken(extraClaims, userDetails, jwtExpiration, "access");
+    return buildToken(extraClaims, userDetails, jwtExpiration, TYPE_ACCESS);
+  }
+
+  public String generateRefreshToken(UserDetails userDetails) {
+    return generateRefreshToken(userDetails, UUID.randomUUID().toString());
   }
 
   public String generateRefreshToken(
-      UserDetails userDetails
+      UserDetails userDetails,
+      String familyId
   ) {
-    return buildToken(new HashMap<>(), userDetails, refreshExpiration, "refresh");
+    Map<String, Object> claims = new HashMap<>();
+    claims.put(CLAIM_SESSION_ID, familyId);
+    return buildToken(claims, userDetails, refreshExpiration, TYPE_REFRESH);
   }
 
   private String buildToken(
-          Map<String, Object> extraClaims,
-          UserDetails userDetails,
-          long expiration,
-          String tokenType
+      Map<String, Object> extraClaims,
+      UserDetails userDetails,
+      long expiration,
+      String tokenType
   ) {
     return Jwts
-            .builder()
-            .claims(extraClaims)
-            .subject(userDetails.getUsername())
-            .id(UUID.randomUUID().toString())
-            .issuedAt(new Date())
-            .expiration(new Date(System.currentTimeMillis() + expiration))
-            .claim("token_type", tokenType)
-            .signWith(getSignInKey())
-            .compact();
+        .builder()
+        .claims(extraClaims)
+        .subject(userDetails.getUsername())
+        .id(UUID.randomUUID().toString())
+        .issuedAt(new Date())
+        .expiration(new Date(System.currentTimeMillis() + expiration))
+        .claim(CLAIM_TOKEN_TYPE, tokenType)
+        .signWith(getSignInKey(), Jwts.SIG.HS256)
+        .compact();
+  }
+
+  public Claims parseValidTokenClaims(String token, String expectedType) {
+    Claims claims = extractAllClaims(token);
+    String actualType = claims.get(CLAIM_TOKEN_TYPE, String.class);
+    if (!expectedType.equals(actualType)) {
+      throw new JwtException("Unexpected token_type claim");
+    }
+    if (claims.getExpiration() == null || !claims.getExpiration().after(new Date())) {
+      throw new JwtException("Token has expired");
+    }
+    return claims;
   }
 
   public boolean isTokenValid(String token, UserDetails userDetails, String expectedType) {
-    Claims claims = extractAllClaims(token);
+    Claims claims = parseValidTokenClaims(token, expectedType);
     return userDetails.getUsername().equals(claims.getSubject())
-        && userDetails.isEnabled()
-        && expectedType.equals(claims.get("token_type", String.class))
-        && claims.getExpiration().after(new Date());
+        && userDetails.isEnabled();
   }
 
   public Date extractExpiration(String token) {
@@ -92,6 +119,9 @@ public class JwtService {
 
   private SecretKey getSignInKey() {
     byte[] keyBytes = Decoders.BASE64.decode(secretKey);
-    return Keys.hmacShaKeyFor(keyBytes);
+    if (keyBytes.length < 32) {
+      throw new IllegalStateException("JWT secret key must be at least 256 bits (32 bytes)");
+    }
+    return new SecretKeySpec(keyBytes, "HmacSHA256");
   }
 }
