@@ -94,7 +94,7 @@ class LogoutServiceTest {
 
     String setCookie = response.getHeader(HttpHeaders.SET_COOKIE);
     assertNotNull(setCookie);
-    assertTrue(setCookie.contains("Path=/api/auth"));
+    assertTrue(setCookie.contains("Path=/api/v1/auth"));
     assertTrue(setCookie.contains("Max-Age=0"));
   }
 

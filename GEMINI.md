@@ -2,15 +2,21 @@
 
 ## Overview & Architecture
 
-**Orders** (`com.screen:orders`) is a Spring Boot REST API providing JWT-based authentication, role/permission-based authorization, and audited order management backed by PostgreSQL.
+**Orders** (`com.screen:orders`) is a Spring Boot REST API providing JWT-based authentication, strict 3-role RBAC authorization, and audited order management backed by PostgreSQL.
 
+- **Global `/api/v1` Base Path & Controller Routing Convention**:
+  - `server.servlet.context-path=/api/v1` is configured globally in `application.properties`.
+  - Controller `@RequestMapping` annotations MUST specify only the resource path (e.g., `@RequestMapping("/auth")`, `@RequestMapping("/orders")`, `@RequestMapping("/users")`, `@RequestMapping("/admin/users")`) without hardcoding `/api` or `/api/v1`.
+  - `SecurityConfiguration` matchers and `JwtAuthenticationFilter` skip paths are context-relative (`/auth/**`, `/admin/**`, `/management/**`), while external browser URLs and cookie paths use the full `/api/v1/...` prefix.
 - **Stateless Security & Token Rotation**:
-  - Short-lived JWT **access tokens** (`token_type=access`, 15m default) are returned in the JSON response body and passed via `Authorization: Bearer <token>`.
-  - Long-lived JWT **refresh tokens** (`token_type=refresh`, 7d default) are delivered via an `HttpOnly`, configurable `Secure`/`SameSite` cookie (`refreshToken`, path `/api/auth`).
+  - Short-lived JWT **access tokens** (`token_type=access`, 15m default) embed the user's primary `ROLE_*` authority claim (`role`) and are passed via `Authorization: Bearer <token>`.
+  - Long-lived JWT **refresh tokens** (`token_type=refresh`, 7d default) are delivered via an `HttpOnly`, configurable `Secure`/`SameSite` cookie (`refreshToken`, path `/api/v1/auth`).
   - Only SHA-256 hashes of refresh tokens are persisted in the `token` table (`TokenHash`), scoped to one `Token` row per user with a signed session family (`sid` / `familyId`) claim and a short `previousTokenHash` + `rotatedAt` multi-tab concurrency grace window. Presenting an already-rotated refresh token from the active session family outside the grace window triggers reuse detection and immediately revokes the session.
-- **Authorization (RBAC + Authorities)**:
-  - Roles (`USER`, `MANAGER`, `ADMIN`) map to granular permissions (`admin:*`, `management:*`) and `ROLE_*` authorities.
-  - Enforced via both URL matchers in `SecurityConfiguration` and `@PreAuthorize` method security.
+- **3-Role RBAC (`USER`, `MANAGEMENT`, `ADMIN`)**:
+  - The `Role` enum strictly defines three roles (`USER`, `MANAGEMENT`, `ADMIN`) persisted on `User` (`_user` table) via `@Enumerated(EnumType.STRING)` and mapped to `ROLE_*` and granular permission authorities (`admin:*`, `management:*`).
+  - **Self-Registration (`POST /api/v1/auth/register`)**: `RegisterRequest` does not accept a `role` field (and ignores unknown JSON properties); newly registered users are unconditionally assigned `Role.USER`.
+  - **Initial Admin Seeding**: `AdminBootstrapSeeder` (`ApplicationRunner`) checks on startup whether any `ADMIN` exists in `orders_db`; if none exists, it seeds the initial `ADMIN` from `APP_INITIAL_ADMIN_EMAIL` and `APP_INITIAL_ADMIN_PASSWORD`.
+  - **Admin Role Management (`/api/v1/admin/users`)**: `AdminUserController` (`GET /admin/users`, `PATCH /admin/users/{id}/role`) is restricted to `ROLE_ADMIN` via both `SecurityConfiguration` (`.requestMatchers("/admin/**").hasRole("ADMIN")`) and `@PreAuthorize("hasRole('ADMIN')")`. `UserService.updateUserRole` prevents an admin from demoting themselves, prevents demoting the last remaining `ADMIN`, and immediately revokes the target user's refresh token session when their role changes.
 - **JPA Auditing**:
   - Enabled on `OrdersApplication` (`@EnableJpaAuditing(auditorAwareRef = "auditorAware")`).
   - `ApplicationAuditAware` resolves the authenticated `User.id` to populate `@CreatedBy` and `@LastModifiedBy` on audited entities (`Order`).
@@ -37,15 +43,15 @@ Base package: `src/main/java/com/screen/orders`
 | :--- | :--- |
 | `OrdersApplication.java` | Main `@SpringBootApplication` entry point and JPA Auditing bootstrap. |
 | `config/` | Security filter chain (`SecurityConfiguration`), bearer filter (`JwtAuthenticationFilter`), JWT signing/validation (`JwtService`), logout revocation (`LogoutService`), core beans (`ApplicationConfig`), and OpenAPI specification (`OpenApiConfig`). |
-| `auth/` | Public auth endpoints (`AuthenticationController` at `/api/auth/{register,login,refresh}`), session rotation and reuse detection (`AuthenticationService`), and `RefreshTokenCookie` helper. |
+| `auth/` | Public auth endpoints (`AuthenticationController` at `@RequestMapping("/auth")` -> `/api/v1/auth/{register,login,refresh,logout}`), session rotation and reuse detection (`AuthenticationService`), and `RefreshTokenCookie` helper (`Path=/api/v1/auth`). |
 | `token/` | `Token` (active refresh session per user with `familyId`, `previousTokenHash`, `rotatedAt`, and pessimistic locking), `TokenHash` (SHA-256 utility), and `TokenRepository`. |
-| `user/` | `User` entity (`_user` table, implements `UserDetails`), `Role` & `Permission` enums, and password update flow (`UserController` at `PATCH /api/v1/users`, `UserService`). |
-| `order/` | Audited `Order` entity, `OrderRequest` DTO, `OrderService`, and `OrderController` (`GET`/`POST /api/v1/orders`). |
+| `user/` | `User` entity (`_user` table, implements `UserDetails`), 3-value `Role` (`USER`, `MANAGEMENT`, `ADMIN`) & `Permission` enums, initial admin seeder (`AdminBootstrapSeeder`), admin user role management (`AdminUserController` at `@RequestMapping("/admin/users")` -> `/api/v1/admin/users`), and password update flow (`UserController` at `@RequestMapping("/users")` -> `PATCH /api/v1/users`, `UserService`). |
+| `order/` | Audited `Order` entity, `OrderRequest` DTO, `OrderService`, and `OrderController` (`@RequestMapping("/orders")` -> `GET`/`POST /api/v1/orders`). |
 | `auditing/` | `ApplicationAuditAware` bridging Spring Security's `SecurityContext` to Spring Data JPA auditing. |
-| `demo/` | Role/authority demonstration controllers (`AdminController` at `/api/v1/admin`, `ManagementController` at `/api/v1/management`, `DemoController` at `/api/v1/demo-controller`). |
+| `demo/` | Role/authority demonstration controllers (`AdminController` at `/admin`, `ManagementController` at `/management`, `DemoController` at `/demo-controller`). |
 
 Configuration: `src/main/resources/application.properties`  
-Tests: `src/test/java/com/screen/orders/OrdersApplicationTests.java`
+Tests: `src/test/java/com/screen/orders/`
 
 ---
 
@@ -56,6 +62,7 @@ Before running the application or context-loading tests, ensure:
 1. **PostgreSQL** is running on `localhost:5432` with database `orders_db` (default credentials: `postgres` / `postgres`).
 2. **Environment Variables**:
    - `JWT_SECRET` (**required**): Base64-encoded HMAC-SHA secret key (at least 256 bits / 32 bytes before encoding).
+   - `APP_INITIAL_ADMIN_EMAIL` & `APP_INITIAL_ADMIN_PASSWORD` (*optional / recommended for first boot*): Credentials used by `AdminBootstrapSeeder` to create the initial `ADMIN` account when no `ADMIN` exists in `orders_db`.
    - `CORS_ALLOWED_ORIGINS` (*optional*): Comma-separated allowed origins (defaults to `http://localhost:3000`).
 
 ---
@@ -70,6 +77,8 @@ Use the included Maven Wrapper (`.\mvnw.cmd` on Windows PowerShell/CMD, `./mvnw`
 
 # Run the application (requires PostgreSQL and JWT_SECRET)
 $env:JWT_SECRET="<base64-encoded-256-bit-secret>"
+$env:APP_INITIAL_ADMIN_EMAIL="admin@example.com"
+$env:APP_INITIAL_ADMIN_PASSWORD="<strong-password>"
 .\mvnw.cmd spring-boot:run
 
 # Run all tests
@@ -79,9 +88,9 @@ $env:JWT_SECRET="<base64-encoded-256-bit-secret>"
 .\mvnw.cmd clean package -DskipTests
 ```
 
-### API Docs (when running locally on port 8080)
-- **Swagger UI**: `http://localhost:8080/swagger-ui.html`
-- **OpenAPI JSON**: `http://localhost:8080/v3/api-docs`
+### API Docs (when running locally on port 8080 with `/api/v1` context path)
+- **Swagger UI**: `http://localhost:8080/api/v1/swagger-ui.html`
+- **OpenAPI JSON**: `http://localhost:8080/api/v1/v3/api-docs`
 
 ---
 
@@ -91,4 +100,3 @@ $env:JWT_SECRET="<base64-encoded-256-bit-secret>"
 - **Pre-Commit Gate**: After completing the changes and verifying that `.\mvnw.cmd test` passes, stop and present a summary of changes (`git status` and `git diff --stat`) and **ask for explicit user approval before running `git commit`**.
 - **Commit Format**: Once approved, stage the modified files and commit locally using Conventional Commits (`feat: ...`, `test: ...`, `fix: ...`).
 - **Pre-Merge & Push Gate**: **Never merge any branch into `main` or `master` (or run `git push`) unless explicitly approved by the user.**
-
