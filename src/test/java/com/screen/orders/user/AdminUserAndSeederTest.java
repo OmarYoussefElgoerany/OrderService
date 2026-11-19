@@ -8,6 +8,7 @@ import com.screen.orders.token.TokenType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -49,7 +50,7 @@ class AdminUserAndSeederTest {
   @BeforeEach
   void setUp() {
     passwordEncoder = new BCryptPasswordEncoder();
-    userService = new UserService(passwordEncoder, userRepository, tokenRepository);
+    userService = new UserService(passwordEncoder, userRepository, tokenRepository, Mappers.getMapper(UserMapper.class));
     adminUserController = new AdminUserController(userService);
     seeder = new AdminBootstrapSeeder(userRepository, passwordEncoder);
   }

@@ -5,7 +5,6 @@ import com.screen.orders.token.Token;
 import com.screen.orders.token.TokenHash;
 import com.screen.orders.token.TokenRepository;
 import com.screen.orders.token.TokenType;
-import com.screen.orders.user.Role;
 import com.screen.orders.user.User;
 import com.screen.orders.user.UserRepository;
 import io.jsonwebtoken.Claims;
@@ -32,6 +31,7 @@ public class AuthenticationService {
   private final PasswordEncoder passwordEncoder;
   private final JwtService jwtService;
   private final AuthenticationManager authenticationManager;
+  private final AuthMapper authMapper;
 
   @Value("${application.security.jwt.refresh-token.reuse-grace-ms:10000}")
   private long reuseGraceMs = 10000L;
@@ -41,14 +41,8 @@ public class AuthenticationService {
     if (repository.existsByEmail(request.getEmail())) {
       throw new ResponseStatusException(HttpStatus.CONFLICT, "An account with this email already exists");
     }
-    var user = User.builder()
-        .firstname(request.getFirstname())
-        .lastname(request.getLastname())
-        .email(request.getEmail())
-        .password(passwordEncoder.encode(request.getPassword()))
-        // Public registration must never grant privileged roles.
-        .role(Role.USER)
-        .build();
+    // Public registration must never grant privileged roles (Role.USER enforced in AuthMapper).
+    var user = authMapper.toNewUser(request, passwordEncoder.encode(request.getPassword()));
     var savedUser = repository.save(user);
     return createSession(savedUser);
   }

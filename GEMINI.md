@@ -30,6 +30,7 @@
 - **Database**: PostgreSQL (`jdbc:postgresql://localhost:5432/orders_db`)
 - **JWT**: `io.jsonwebtoken:jjwt-*` (`0.12.6`)
 - **API Documentation**: SpringDoc OpenAPI Starter WebMVC UI (`3.2.0`) — Swagger UI enabled with `with-credentials=true`
+- **Object Mapping**: MapStruct (`1.6.3`, Spring component model) with `lombok-mapstruct-binding` (`0.2.0`)
 - **Boilerplate Reduction**: Project Lombok
 - **Build Tool**: Maven (with Maven Wrapper `mvnw` / `mvnw.cmd`)
 

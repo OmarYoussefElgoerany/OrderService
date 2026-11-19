@@ -20,6 +20,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final UserRepository repository;
     private final TokenRepository tokenRepository;
+    private final UserMapper userMapper;
 
     @Transactional
     public void changePassword(ChangePasswordRequest request, Principal connectedUser) {
@@ -47,9 +48,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<UserSummaryResponse> findAllUsers() {
-        return repository.findAll().stream()
-                .map(UserSummaryResponse::from)
-                .toList();
+        return userMapper.toSummaryResponses(repository.findAll());
     }
 
     @Transactional
@@ -96,7 +95,7 @@ public class UserService {
             revokeUserRefreshSession(savedUser.getId());
         }
 
-        return UserSummaryResponse.from(savedUser);
+        return userMapper.toSummaryResponse(savedUser);
     }
 
     private void revokeUserRefreshSession(Integer userId) {
